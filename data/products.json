@@ -1,0 +1,99 @@
+{
+  "brands": {
+    "Carhartt": {
+      "products": {
+        "Gilliam Vest": {
+          "sku": "VBS-AP-118996",
+          "variants": {
+            "mens": {
+              "colors": ["Black"],
+              "sizes": ["2XL", "XL", "L", "M", "S"]
+            },
+            "womens": {
+              "sku": "VBS-AP-118941S",
+              "colors": ["Black"],
+              "sizes": ["S", "L", "M"]
+            }
+          }
+        }
+      }
+    },
+    "Cutter & Buck": {
+      "products": {
+        "Adapt Eco Knit Stretch Recycled": {
+          "variants": {
+            "mens_quarter_zip": {
+              "sku": "VBS-AP-MCK01143",
+              "colors": ["College Purple"],
+              "sizes": ["2XL", "XL", "L", "M", "S"]
+            },
+            "womens_half_zip": {
+              "sku": "VBS-AP-LCK01128",
+              "colors": ["College Purple", "Polished"],
+              "sizes": ["2XL", "XL", "L", "M", "S"]
+            }
+          }
+        }
+      }
+    },
+    "OGIO": {
+      "products": {
+        "Bags": {
+          "variants": {
+            "standard": {
+              "sku": "VBS-AP-91037",
+              "colors": ["Black"],
+              "sizes": ["OSFA"]
+            }
+          }
+        },
+        "Full-Zip": {
+          "sku": "VBS-AP-LOG800",
+          "colors": ["Black"],
+          "sizes": ["2XL", "XL", "L", "M", "S"]
+        }
+      }
+    },
+    "Pelican": {
+      "products": {
+        "Pacific 32 Oz Double Wall Water Bottle": {
+          "sku": "VBS-AP-PL1266",
+          "colors": ["Purple"],
+          "sizes": ["OSFA"]
+        }
+      }
+    },
+    "TravisMathew": {
+      "products": {
+        "Accessible Heather Polo": {
+          "sku": "VBS-AP-TM1WW054",
+          "colors": ["Purple Sage Heather", "Quiet Shade Grey Heather"],
+          "sizes": ["2XL", "XL", "L", "M", "S"]
+        }
+      }
+    },
+    "Under Armour": {
+      "products": {
+        "Team Tech Quarter-Zip": {
+          "sku": "VBS-AP-1358844",
+          "colors": ["Black", "Med Grey Light", "Camo"],
+          "sizes": ["2XL", "XL", "L", "M", "S"]
+        }
+      }
+    },
+    "VIT": {
+      "products": {
+        "Name Badge": {
+          "sku": "VBS-NB",
+          "colors": ["Default"],
+          "sizes": ["OSFA"]
+        },
+        "Tumbler": {
+          "sku": "YETI-Rambler-20",
+          "colors": ["White"],
+          "sizes": ["20oz"]
+        }
+      }
+    }
+  }
+} 
