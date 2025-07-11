@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Order } from './types/orders';
 import OrderList from './components/OrderList';
 import PickingInterface from './components/PickingInterface';
-import TestOrders from './components/TestOrders';
+import CompletedOrders from './components/CompletedOrders';
+import AdminControls from './components/AdminControls';
 import { 
   AppBar, 
   Box, 
@@ -13,9 +14,12 @@ import {
   createTheme,
   useMediaQuery,
   IconButton,
-  Drawer
+  Drawer,
+  Badge
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { orderStore } from './services/orderStore';
 
 const theme = createTheme({
   palette: {
@@ -35,20 +39,18 @@ function App() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [completedCount, setCompletedCount] = useState(0);
 
-  const handleOrderSelect = (order: Order | null) => {
-    setSelectedOrder(order);
-    if (isMobile) {
-      setDrawerOpen(false);
-    }
-  };
+  // Subscribe to order updates to get completed count
+  React.useEffect(() => {
+    const updateCompletedCount = (orders: Order[]) => {
+      const completed = orders.filter(order => order.status === 'completed').length;
+      setCompletedCount(completed);
+    };
 
-  const OrderListComponent = (
-    <OrderList 
-      selectedOrder={selectedOrder}
-      onOrderSelect={handleOrderSelect}
-    />
-  );
+    const unsubscribe = orderStore.subscribe(updateCompletedCount);
+    return () => unsubscribe();
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -57,69 +59,56 @@ function App() {
         <AppBar position="static" sx={{ mb: 2 }}>
           <Container>
             <Box sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-              {isMobile && (
-                <IconButton
-                  color="inherit"
-                  edge="start"
-                  onClick={() => setDrawerOpen(true)}
-                  sx={{ mr: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              )}
-              <Typography variant="h6" component="div">
+              <Typography variant="h6" component="div" sx={{ flex: 1 }}>
                 VBS FMG Picking System
               </Typography>
+              <IconButton 
+                color="inherit"
+                onClick={() => setDrawerOpen(true)}
+                sx={{ ml: 2 }}
+              >
+                <Badge badgeContent={completedCount} color="error">
+                  <CheckCircleIcon />
+                </Badge>
+              </IconButton>
             </Box>
           </Container>
         </AppBar>
 
         <Container sx={{ flex: 1, display: 'flex', gap: 2 }}>
-          {isMobile ? (
-            <>
-              <Drawer
-                anchor="left"
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                sx={{
-                  '& .MuiDrawer-paper': {
-                    width: '80%',
-                    maxWidth: 360,
-                    boxSizing: 'border-box',
-                  },
-                }}
-              >
-                {OrderListComponent}
-              </Drawer>
-              <Box sx={{ width: '100%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1 }}>
-                {selectedOrder ? (
-                  <PickingInterface 
-                    order={selectedOrder}
-                    onClose={() => setSelectedOrder(null)}
-                  />
-                ) : (
-                  <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
-                    Select an order from the menu to start picking
-                  </Typography>
-                )}
-              </Box>
-            </>
-          ) : (
-            <>
-              <Box sx={{ width: '40%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1 }}>
-                {OrderListComponent}
-              </Box>
-              <Box sx={{ width: '60%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1 }}>
-                <PickingInterface 
-                  order={selectedOrder}
-                  onClose={() => setSelectedOrder(null)}
-                />
-              </Box>
-            </>
-          )}
+          <Box sx={{ width: '100%', display: 'flex', gap: 2 }}>
+            <Box sx={{ width: '40%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 120px)' }}>
+              <OrderList 
+                selectedOrder={selectedOrder}
+                onOrderSelect={setSelectedOrder}
+              />
+            </Box>
+            <Box sx={{ width: '60%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1 }}>
+              <PickingInterface 
+                order={selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+              />
+            </Box>
+          </Box>
         </Container>
+
+        <Drawer
+          anchor="right"
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: '90%',
+              maxWidth: 600,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          <CompletedOrders onClose={() => setDrawerOpen(false)} />
+        </Drawer>
+
+        <AdminControls />
       </Box>
-      <TestOrders />
     </ThemeProvider>
   );
 }

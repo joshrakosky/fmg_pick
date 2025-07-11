@@ -1,112 +1,113 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
   Box,
   Typography,
-  Checkbox,
-  IconButton,
-  useMediaQuery,
-  useTheme,
   Card,
   CardContent,
+  Button,
+  Chip,
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Divider,
-  Snackbar,
-  Alert
+  IconButton
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { Order } from '../types/orders';
+import { Order, OrderItem } from '../types/orders';
 import { orderStore } from '../services/orderStore';
 
 interface PickingInterfaceProps {
   order: Order | null;
-  onClose?: () => void;
+  onClose: () => void;
 }
 
 const PickingInterface: React.FC<PickingInterfaceProps> = ({ order, onClose }) => {
-  const [pickedItems, setPickedItems] = useState<{ [key: string]: boolean }>({});
-  const [showSuccess, setShowSuccess] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  useEffect(() => {
-    // Reset picked items when order changes
-    setPickedItems({});
-  }, [order?.orderId]);
-
   if (!order) {
-    return null;
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="body1">
+          Select an order to start picking
+        </Typography>
+      </Box>
+    );
   }
 
-  const handleItemPick = (itemIndex: number) => {
-    setPickedItems(prev => ({
-      ...prev,
-      [itemIndex]: !prev[itemIndex]
-    }));
-  };
-
-  const allItemsPicked = order.items.every((_, index) => pickedItems[index]);
-
   const handleComplete = () => {
-    if (order) {
-      orderStore.updateOrderStatus(order.orderId, 'completed');
-      setShowSuccess(true);
-      
-      // Close after a short delay
-      setTimeout(() => {
-        onClose?.();
-      }, 2000);
-    }
+    orderStore.updateOrderStatus(order.orderId, 'completed');
+    onClose();
   };
 
-  const CustomerInfo = () => (
-    <Card variant="outlined" sx={{ mb: 2 }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Customer Information
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">
+          Order #{order.orderId}
         </Typography>
-        <Typography>
-          {order.customer.name}
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Customer Information
+          </Typography>
+          <Typography>
+            {order.customer.name}
+          </Typography>
           {order.shipAttention && (
-            <Typography component="span" color="text.secondary">
-              {' '}(Attn: {order.shipAttention})
+            <Typography color="text.secondary">
+              Attn: {order.shipAttention}
             </Typography>
           )}
-        </Typography>
-        <Typography color="text.secondary">
-          {order.customer.address.street1}<br />
-          {order.customer.address.city}, {order.customer.address.state} {order.customer.address.postal}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
+          <Typography color="text.secondary">
+            {order.customer.address.street}<br />
+            {order.customer.address.city}, {order.customer.address.state} {order.customer.address.postal}
+          </Typography>
+          {order.customer.contact && (
+            <Typography color="text.secondary" sx={{ mt: 1 }}>
+              Contact: {order.customer.contact}
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
 
-  const MobileView = () => (
-    <Box>
-      <CustomerInfo />
+      <Typography variant="h6" gutterBottom>
+        Items to Pick
+      </Typography>
       <List>
         {order.items.map((item, index) => (
-          <React.Fragment key={index}>
+          <React.Fragment key={item.id}>
             <ListItem>
               <ListItemText
-                primary={item.productName}
+                primary={
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="subtitle1">
+                      {item.name}
+                    </Typography>
+                    <Chip
+                      label={`SKU: ${item.sku}`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+                }
                 secondary={
                   <>
-                    <Typography variant="body2">SKU: {item.sku}</Typography>
-                    <Typography variant="body2">Quantity: {item.quantity}</Typography>
+                    <Typography variant="body2">
+                      Quantity: {item.quantity}
+                    </Typography>
+                    {item.color && (
+                      <Typography variant="body2">
+                        Color: {item.color}
+                      </Typography>
+                    )}
+                    {item.size && (
+                      <Typography variant="body2">
+                        Size: {item.size}
+                      </Typography>
+                    )}
                     {item.lineNote && (
                       <Typography variant="body2" color="text.secondary">
                         Note: {item.lineNote}
@@ -115,111 +116,22 @@ const PickingInterface: React.FC<PickingInterfaceProps> = ({ order, onClose }) =
                   </>
                 }
               />
-              <ListItemSecondaryAction>
-                <Checkbox
-                  edge="end"
-                  checked={pickedItems[index] || false}
-                  onChange={() => handleItemPick(index)}
-                />
-              </ListItemSecondaryAction>
             </ListItem>
-            <Divider />
+            {index < order.items.length - 1 && <Divider />}
           </React.Fragment>
         ))}
       </List>
+
+      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleComplete}
+        >
+          Complete Order
+        </Button>
+      </Box>
     </Box>
-  );
-
-  const DesktopView = () => (
-    <TableContainer component={Paper} variant="outlined">
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell padding="checkbox">Picked</TableCell>
-            <TableCell>SKU</TableCell>
-            <TableCell>Product Name</TableCell>
-            <TableCell>Notes</TableCell>
-            <TableCell align="center">Quantity</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {order.items.map((item, index) => (
-            <TableRow key={index}>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={pickedItems[index] || false}
-                  onChange={() => handleItemPick(index)}
-                />
-              </TableCell>
-              <TableCell>{item.sku}</TableCell>
-              <TableCell>{item.productName}</TableCell>
-              <TableCell>
-                {item.lineNote && (
-                  <Typography variant="caption" display="block">
-                    Note: {item.lineNote}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell align="center">{item.quantity}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-
-  return (
-    <Dialog 
-      open={true} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-      fullScreen={isMobile}
-    >
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
-            Picking Order #{order.orderId}
-          </Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-      
-      <DialogContent>
-        {isMobile ? <MobileView /> : (
-          <>
-            <CustomerInfo />
-            <DesktopView />
-          </>
-        )}
-
-        <Box mt={2} display="flex" justifyContent="flex-end">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleComplete}
-            disabled={!allItemsPicked}
-            size={isMobile ? "large" : "medium"}
-            fullWidth={isMobile}
-          >
-            Complete Picking
-          </Button>
-        </Box>
-      </DialogContent>
-
-      <Snackbar
-        open={showSuccess}
-        autoHideDuration={2000}
-        onClose={() => setShowSuccess(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="success" sx={{ width: '100%' }}>
-          Order completed successfully!
-        </Alert>
-      </Snackbar>
-    </Dialog>
   );
 };
 

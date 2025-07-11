@@ -12,7 +12,7 @@ const TestOrders: React.FC = () => {
           email: "test1@example.com",
           contact: "Test Contact 1",
           address: {
-            street1: "123 Test St",
+            street: "123 Test St",
             city: "Test City",
             state: "TS",
             postal: "12345"
@@ -20,16 +20,17 @@ const TestOrders: React.FC = () => {
         },
         items: [
           {
+            id: "SKU001",
+            name: "Test Product 1",
             sku: "SKU001",
-            productName: "Test Product 1",
             quantity: 2,
             lineNote: "Test note"
           },
           {
+            id: "SKU002",
+            name: "Test Product 2",
             sku: "SKU002",
-            productName: "Test Product 2",
-            quantity: 1,
-            lineNote: ""
+            quantity: 1
           }
         ],
         shipAttention: "Test Attention",
@@ -43,7 +44,7 @@ const TestOrders: React.FC = () => {
           email: "test2@example.com",
           contact: "Test Contact 2",
           address: {
-            street1: "456 Test Ave",
+            street: "456 Test Ave",
             city: "Test Town",
             state: "TS",
             postal: "67890"
@@ -51,13 +52,12 @@ const TestOrders: React.FC = () => {
         },
         items: [
           {
+            id: "SKU003",
+            name: "Test Product 3",
             sku: "SKU003",
-            productName: "Test Product 3",
-            quantity: 3,
-            lineNote: ""
+            quantity: 3
           }
         ],
-        shipAttention: "",
         status: "pending" as const,
         createdAt: new Date().toISOString()
       }

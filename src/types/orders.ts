@@ -1,12 +1,6 @@
-export interface OrderItem {
-  sku: string;
-  productName: string;
-  quantity: number;
-  lineNote: string;
-}
-
 export interface CustomerAddress {
-  street1: string;
+  street: string;
+  street2?: string;
   city: string;
   state: string;
   postal: string;
@@ -19,14 +13,24 @@ export interface Customer {
   address: CustomerAddress;
 }
 
+export interface OrderItem {
+  id: string;
+  name: string;
+  sku: string;
+  quantity: number;
+  color?: string;
+  size?: string;
+  lineNote?: string;
+}
+
 export interface Order {
   orderId: string;
   customer: Customer;
-  shipAttention: string;
   items: OrderItem[];
   status: 'pending' | 'in_progress' | 'completed';
   createdAt: string;
   completedAt?: string;
+  shipAttention?: string;
 }
 
 export type CSVRow = { [key: string]: string };
