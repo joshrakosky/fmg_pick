@@ -1,22 +1,30 @@
 import React from 'react';
-import { Box, Button } from '@mui/material';
+import { Button, Box } from '@mui/material';
 import { orderStore } from '../services/orderStore';
 
 const AdminControls: React.FC = () => {
   const clearOrders = () => {
     if (window.confirm('Are you sure you want to clear all orders? This cannot be undone.')) {
-      orderStore.setOrders([]);
+      // Clear all orders by updating each one to completed status
+      const orders = orderStore.getOrders();
+      orders.forEach(order => {
+        orderStore.updateOrder({
+          ...order,
+          status: 'completed',
+          completedAt: new Date().toISOString()
+        });
+      });
       localStorage.clear();
     }
   };
 
   return (
-    <Box sx={{ position: 'fixed', bottom: 16, right: 16 }}>
-      <Button 
-        variant="outlined" 
-        color="error" 
+    <Box sx={{ mt: 2 }}>
+      <Button
+        variant="contained"
+        color="error"
         onClick={clearOrders}
-        size="small"
+        fullWidth
       >
         Clear All Orders
       </Button>

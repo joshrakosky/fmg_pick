@@ -1,46 +1,44 @@
-import React, { useState } from 'react';
-import OrderList from './components/OrderList';
-import PickingInterface from './components/PickingInterface';
-import CompletedOrders from './components/CompletedOrders';
+import React, { useState, useEffect } from 'react';
 import {
-  AppBar,
   Box,
   Container,
   CssBaseline,
-  ThemeProvider,
+  AppBar,
   Typography,
   IconButton,
-  Drawer,
   Badge,
-  useTheme
+  Drawer,
+  Button
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Order } from './types/orders';
+import OrderList from './components/OrderList';
+import PickingInterface from './components/PickingInterface';
+import CSVImport from './components/CSVImport';
 import { orderStore } from './services/orderStore';
 
 const App: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const theme = useTheme();
   const [completedCount, setCompletedCount] = useState(0);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
 
-  // Subscribe to order updates to get completed count
-  React.useEffect(() => {
+  useEffect(() => {
     const updateCompletedCount = (orders: Order[]) => {
-      const completed = orders.filter(order => order.status === 'completed').length;
-      setCompletedCount(completed);
+      setCompletedCount(orders.filter(order => order.status === 'completed').length);
     };
 
-    // Initial count
-    updateCompletedCount(orderStore.getOrders());
-
-    // Subscribe to updates
-    const unsubscribe = orderStore.subscribe(updateCompletedCount);
-    return () => unsubscribe();
+    orderStore.subscribe(updateCompletedCount);
+    return () => orderStore.unsubscribe(updateCompletedCount);
   }, []);
 
+  const handleImport = (orders: Order[]) => {
+    orders.forEach(order => orderStore.addOrder(order));
+    setCsvDialogOpen(false);
+  };
+
   return (
-    <ThemeProvider theme={theme}>
+    <>
       <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <AppBar position="static" sx={{ mb: 2 }}>
@@ -49,6 +47,13 @@ const App: React.FC = () => {
               <Typography variant="h6" component="div" sx={{ flex: 1 }}>
                 VBS FMG Picking System
               </Typography>
+              <Button
+                color="inherit"
+                onClick={() => setCsvDialogOpen(true)}
+                sx={{ mr: 2 }}
+              >
+                Import CSV
+              </Button>
               <IconButton
                 color="inherit"
                 onClick={() => setDrawerOpen(true)}
@@ -62,34 +67,41 @@ const App: React.FC = () => {
           </Container>
         </AppBar>
 
-        <Container sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
-            <Box sx={{ flex: '0 0 40%', overflow: 'auto' }}>
-              <OrderList
-                selectedOrder={selectedOrder}
-                onOrderSelect={setSelectedOrder}
-              />
-            </Box>
-            <Box sx={{ flex: '0 0 60%' }}>
-              <PickingInterface
-                order={selectedOrder}
-                onClose={() => setSelectedOrder(null)}
-              />
-            </Box>
+        <Container sx={{ flex: 1, display: 'flex', gap: 2 }}>
+          <Box sx={{ width: '40%' }}>
+            <OrderList
+              selectedOrder={selectedOrder}
+              onOrderSelect={setSelectedOrder}
+            />
+          </Box>
+          <Box sx={{ width: '60%' }}>
+            <PickingInterface
+              order={selectedOrder}
+              onClose={() => setSelectedOrder(null)}
+            />
           </Box>
         </Container>
-
-        <Drawer
-          anchor="right"
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-        >
-          <Box sx={{ width: 350, p: 2 }}>
-            <CompletedOrders onClose={() => setDrawerOpen(false)} />
-          </Box>
-        </Drawer>
       </Box>
-    </ThemeProvider>
+
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
+        <Box sx={{ width: 350, p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Completed Orders ({completedCount})
+          </Typography>
+          {/* Add completed orders list here */}
+        </Box>
+      </Drawer>
+
+      <CSVImport
+        open={csvDialogOpen}
+        onClose={() => setCsvDialogOpen(false)}
+        onImport={handleImport}
+      />
+    </>
   );
 };
 

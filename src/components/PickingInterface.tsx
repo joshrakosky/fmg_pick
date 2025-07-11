@@ -13,7 +13,7 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
-import { Order, OrderItem } from '../types/orders';
+import { Order } from '../types/orders';
 import { orderStore } from '../services/orderStore';
 
 interface PickingInterfaceProps {

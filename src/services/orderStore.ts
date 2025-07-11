@@ -17,36 +17,39 @@ class OrderStore {
   private listeners: OrderListener[] = [];
 
   constructor() {
-    // Load initial orders from localStorage
-    this.loadOrders();
+    // Load initial data from localStorage
+    const savedOrders = localStorage.getItem('orders');
+    if (savedOrders) {
+      this.orders = JSON.parse(savedOrders);
+    }
 
-    // Listen for updates from other tabs/windows
+    // Listen for changes from other tabs/windows
     orderChannel.onmessage = (event) => {
       if (event.data.type === 'orders-updated') {
-        this.loadOrders();
+        this.orders = event.data.orders;
+        this.notifyListeners();
       }
     };
 
-    // Refresh orders when tab becomes visible
+    // Update when tab becomes visible
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        this.loadOrders();
+        const savedOrders = localStorage.getItem('orders');
+        if (savedOrders) {
+          this.orders = JSON.parse(savedOrders);
+          this.notifyListeners();
+        }
       }
     });
   }
 
-  private loadOrders() {
-    const storedOrders = localStorage.getItem('orders');
-    if (storedOrders) {
-      this.orders = JSON.parse(storedOrders);
-      this.notifyListeners();
-    }
+  private notifyListeners() {
+    this.listeners.forEach(listener => listener(this.orders));
   }
 
   private saveOrders() {
     localStorage.setItem('orders', JSON.stringify(this.orders));
-    // Notify other tabs/windows
-    orderChannel.postMessage({ type: 'orders-updated' });
+    orderChannel.postMessage({ type: 'orders-updated', orders: this.orders });
     this.notifyListeners();
   }
 
@@ -54,8 +57,8 @@ class OrderStore {
     return this.orders;
   }
 
-  setOrders(orders: Order[]) {
-    this.orders = orders;
+  addOrder(order: Order) {
+    this.orders.push(order);
     this.saveOrders();
   }
 
@@ -69,15 +72,14 @@ class OrderStore {
 
   subscribe(listener: OrderListener) {
     this.listeners.push(listener);
-    // Immediately notify new listener of current state
-    listener(this.orders);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
+    listener(this.orders); // Initial call
   }
 
-  private notifyListeners() {
-    this.listeners.forEach(listener => listener(this.orders));
+  unsubscribe(listener: OrderListener) {
+    const index = this.listeners.indexOf(listener);
+    if (index !== -1) {
+      this.listeners.splice(index, 1);
+    }
   }
 }
 

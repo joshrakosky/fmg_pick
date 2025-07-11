@@ -14,7 +14,7 @@ import {
   TableRow,
   Paper
 } from '@mui/material';
-import { Order } from '../types/orders';
+import { Order, OrderItem } from '../types/orders';
 import Papa from 'papaparse';
 
 interface CSVImportProps {
@@ -65,6 +65,22 @@ const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, onImport }) => {
             };
           };
 
+          const items: OrderItem[] = orderRows
+            .filter(row => row['Product Name'])
+            .map(row => {
+              const { color, size, note } = extractColorAndSize(row['Line Note'] || '');
+              const itemId = row['Customer Item #'] || row['Product Name'];
+              return {
+                id: itemId,
+                name: row['Product Name'],
+                sku: row['Customer Item #'] || itemId,
+                quantity: parseInt(row['Quantity'] || '1', 10),
+                color,
+                size,
+                lineNote: note || undefined
+              };
+            });
+
           return {
             orderId,
             customer: {
@@ -72,7 +88,7 @@ const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, onImport }) => {
               email: firstRow['Contact Email'] || '',
               contact: firstRow['Customer Contact'] || '',
               address: {
-                street: firstRow['Ship Street 1'] || '',
+                street: firstRow['Ship Street 1'] || '',  // Changed from street1 to street
                 street2: firstRow['Ship Street 2'] || '',
                 city: firstRow['City'] || '',
                 state: firstRow['State'] || '',
@@ -80,22 +96,8 @@ const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, onImport }) => {
               }
             },
             shipAttention: firstRow['Ship Attention'] || '',
-            items: orderRows
-              .filter(row => row['Product Name'])
-              .map(row => {
-                const { color, size, note } = extractColorAndSize(row['Line Note'] || '');
-                const itemId = row['Customer Item #'] || row['Product Name'];
-                return {
-                  id: itemId,
-                  name: row['Product Name'],
-                  sku: row['Customer Item #'] || itemId,
-                  quantity: parseInt(row['Quantity'] || '1', 10),
-                  color,
-                  size,
-                  lineNote: note || undefined
-                };
-              }),
-            status: 'pending',
+            items,
+            status: 'pending' as const,
             createdAt: firstRow['Created Date'] || new Date().toISOString()
           };
         });
