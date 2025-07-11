@@ -5,6 +5,13 @@ type OrderListener = (orders: Order[]) => void;
 // Create a broadcast channel for cross-tab communication
 const orderChannel = new BroadcastChannel('order-updates');
 
+// Check if this is the first load
+const isFirstLoad = !localStorage.getItem('app_initialized');
+if (isFirstLoad) {
+  localStorage.clear(); // Clear all data
+  localStorage.setItem('app_initialized', 'true');
+}
+
 class OrderStore {
   private orders: Order[] = [];
   private listeners: OrderListener[] = [];

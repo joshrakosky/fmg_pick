@@ -1,165 +1,184 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
+  Box,
+  Typography,
   List,
   ListItem,
   ListItemText,
-  Typography,
-  Box,
-  Chip,
+  Paper,
   Divider,
-  useTheme,
-  useMediaQuery,
-  Pagination,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Chip,
+  IconButton,
+  Collapse
 } from '@mui/material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
 import { Order } from '../types/orders';
 import { orderStore } from '../services/orderStore';
-import CSVImport from './CSVImport';
 
 interface OrderListProps {
   selectedOrder: Order | null;
   onOrderSelect: (order: Order | null) => void;
 }
 
-const ITEMS_PER_PAGE = 10;
-
 const OrderList: React.FC<OrderListProps> = ({ selectedOrder, onOrderSelect }) => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [page, setPage] = useState(1);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  useEffect(() => {
-    const handleOrders = (allOrders: Order[]) => {
-      const activeOrders = allOrders
-        .filter(order => order.status !== 'completed')
-        .sort((a, b) => {
-          // Sort by status (pending first, then in_progress)
-          if (a.status === 'pending' && b.status === 'in_progress') return -1;
-          if (a.status === 'in_progress' && b.status === 'pending') return 1;
-          // Then sort by creation date
-          return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
-        });
-      setOrders(activeOrders);
+  React.useEffect(() => {
+    const updateOrders = (orders: Order[]) => {
+      const pendingOrders = orders.filter(order => order.status === 'pending');
+      setOrders(pendingOrders);
     };
 
-    const unsubscribe = orderStore.subscribe(handleOrders);
+    updateOrders(orderStore.getOrders());
+    const unsubscribe = orderStore.subscribe(updateOrders);
     return () => unsubscribe();
   }, []);
 
-  const handleImport = (newOrders: Order[]) => {
-    orderStore.setOrders([...orders, ...newOrders]);
-    setImportDialogOpen(false);
+  const handleClearAll = () => {
+    orders.forEach(order => {
+      orderStore.updateOrder({
+        ...order,
+        status: 'completed' as const,
+        completedAt: new Date().toISOString()
+      });
+    });
+    onOrderSelect(null);
+    setShowClearConfirm(false);
   };
 
-  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
-  const currentOrders = orders.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
-
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'warning';
-      case 'in_progress':
-        return 'info';
-      default:
-        return 'default';
-    }
+  const handleToggleExpand = (orderId: string) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">
-          Active Orders
-        </Typography>
-        <Button 
-          variant="contained" 
-          color="primary"
-          size="small"
-          onClick={() => setImportDialogOpen(true)}
-        >
-          Import CSV
-        </Button>
+    <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6" sx={{ flex: 1 }}>
+            Active Orders ({orders.length})
+          </Typography>
+          {orders.length > 0 && (
+            <IconButton 
+              onClick={() => setShowClearConfirm(true)}
+              color="error"
+              size="small"
+            >
+              <DeleteIcon />
+            </IconButton>
+          )}
+        </Box>
       </Box>
 
-      {orders.length === 0 ? (
-        <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
-          No active orders
-        </Typography>
-      ) : (
-        <>
-          <List sx={{ flex: 1, overflow: 'auto' }}>
-            {currentOrders.map((order, index) => (
-              <React.Fragment key={order.orderId}>
-                <ListItem
-                  button
-                  selected={selectedOrder?.orderId === order.orderId}
-                  onClick={() => onOrderSelect(order)}
-                  sx={{
-                    '&.Mui-selected': {
-                      backgroundColor: 'action.selected',
-                    },
-                  }}
-                >
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
+        <List>
+          {orders.map((order, index) => (
+            <React.Fragment key={order.orderId}>
+              <ListItem
+                button
+                selected={selectedOrder?.orderId === order.orderId}
+                onClick={() => onOrderSelect(order)}
+                sx={{ display: 'block' }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <ListItemText
                     primary={
-                      <Box display="flex" alignItems="center" gap={1}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="subtitle1">
                           Order #{order.orderId}
                         </Typography>
                         <Chip
-                          label={order.status}
+                          label={`${order.items.length} items`}
                           size="small"
-                          color={getStatusColor(order.status)}
+                          color="primary"
+                          variant="outlined"
                         />
                       </Box>
                     }
-                    secondary={
-                      <>
-                        <Typography variant="body2">
-                          Customer: {order.customer.name}
-                        </Typography>
-                        <Typography variant="body2">
-                          Items: {order.items.length}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Created: {new Date(order.createdAt || '').toLocaleString()}
-                        </Typography>
-                      </>
-                    }
+                    secondary={order.customer.name}
                   />
-                </ListItem>
-                {index < currentOrders.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleExpand(order.orderId);
+                    }}
+                    size="small"
+                  >
+                    {expandedOrder === order.orderId ? (
+                      <ExpandLessIcon />
+                    ) : (
+                      <ExpandMoreIcon />
+                    )}
+                  </IconButton>
+                </Box>
 
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={handlePageChange}
-              color="primary"
-              size={isMobile ? "small" : "medium"}
-            />
-          </Box>
-        </>
-      )}
+                <Collapse in={expandedOrder === order.orderId}>
+                  <Box sx={{ pl: 2, pr: 2, pb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Ship To: {order.customer.address.street}
+                      {order.customer.address.street2 && `, ${order.customer.address.street2}`}
+                      <br />
+                      {order.customer.address.city}, {order.customer.address.state} {order.customer.address.postal}
+                    </Typography>
+                    {order.shipAttention && (
+                      <Typography variant="body2" color="text.secondary">
+                        Attention: {order.shipAttention}
+                      </Typography>
+                    )}
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                      Items:
+                    </Typography>
+                    {order.items.map((item, idx) => (
+                      <Typography key={idx} variant="body2" color="text.secondary">
+                        • {item.quantity}x {item.name}
+                        {item.color && ` (${item.color})`}
+                        {item.size && ` - ${item.size}`}
+                      </Typography>
+                    ))}
+                  </Box>
+                </Collapse>
+              </ListItem>
+              {index < orders.length - 1 && <Divider />}
+            </React.Fragment>
+          ))}
+          {orders.length === 0 && (
+            <ListItem>
+              <ListItemText
+                primary="No active orders"
+                secondary="Import orders or complete existing ones"
+              />
+            </ListItem>
+          )}
+        </List>
+      </Box>
 
-      <CSVImport
-        open={importDialogOpen}
-        onClose={() => setImportDialogOpen(false)}
-        onImport={handleImport}
-      />
-    </Box>
+      <Dialog open={showClearConfirm} onClose={() => setShowClearConfirm(false)}>
+        <DialogTitle>Clear All Orders</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to mark all orders as completed? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowClearConfirm(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleClearAll} color="error" variant="contained">
+            Clear All
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Paper>
   );
 };
 
