@@ -1,44 +1,27 @@
 import React, { useState } from 'react';
-import { Order } from './types/orders';
 import OrderList from './components/OrderList';
 import PickingInterface from './components/PickingInterface';
 import CompletedOrders from './components/CompletedOrders';
-import AdminControls from './components/AdminControls';
-import { 
-  AppBar, 
-  Box, 
-  Container, 
-  CssBaseline, 
-  ThemeProvider, 
-  Typography, 
-  createTheme,
-  useMediaQuery,
+import {
+  AppBar,
+  Box,
+  Container,
+  CssBaseline,
+  ThemeProvider,
+  Typography,
   IconButton,
   Drawer,
-  Badge
+  Badge,
+  useTheme
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { Order } from './types/orders';
 import { orderStore } from './services/orderStore';
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-});
-
-function App() {
+const App: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const theme = useTheme();
   const [completedCount, setCompletedCount] = useState(0);
 
   // Subscribe to order updates to get completed count
@@ -48,6 +31,10 @@ function App() {
       setCompletedCount(completed);
     };
 
+    // Initial count
+    updateCompletedCount(orderStore.getOrders());
+
+    // Subscribe to updates
     const unsubscribe = orderStore.subscribe(updateCompletedCount);
     return () => unsubscribe();
   }, []);
@@ -62,29 +49,29 @@ function App() {
               <Typography variant="h6" component="div" sx={{ flex: 1 }}>
                 VBS FMG Picking System
               </Typography>
-              <IconButton 
+              <IconButton
                 color="inherit"
                 onClick={() => setDrawerOpen(true)}
                 sx={{ ml: 2 }}
               >
                 <Badge badgeContent={completedCount} color="error">
-                  <CheckCircleIcon />
+                  <MenuIcon />
                 </Badge>
               </IconButton>
             </Box>
           </Container>
         </AppBar>
 
-        <Container sx={{ flex: 1, display: 'flex', gap: 2 }}>
-          <Box sx={{ width: '100%', display: 'flex', gap: 2 }}>
-            <Box sx={{ width: '40%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 120px)' }}>
-              <OrderList 
+        <Container sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
+            <Box sx={{ flex: '0 0 40%', overflow: 'auto' }}>
+              <OrderList
                 selectedOrder={selectedOrder}
                 onOrderSelect={setSelectedOrder}
               />
             </Box>
-            <Box sx={{ width: '60%', bgcolor: 'white', borderRadius: 1, p: 2, boxShadow: 1 }}>
-              <PickingInterface 
+            <Box sx={{ flex: '0 0 60%' }}>
+              <PickingInterface
                 order={selectedOrder}
                 onClose={() => setSelectedOrder(null)}
               />
@@ -96,21 +83,14 @@ function App() {
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          sx={{
-            '& .MuiDrawer-paper': {
-              width: '90%',
-              maxWidth: 600,
-              boxSizing: 'border-box',
-            },
-          }}
         >
-          <CompletedOrders onClose={() => setDrawerOpen(false)} />
+          <Box sx={{ width: 350, p: 2 }}>
+            <CompletedOrders onClose={() => setDrawerOpen(false)} />
+          </Box>
         </Drawer>
-
-        <AdminControls />
       </Box>
     </ThemeProvider>
   );
-}
+};
 
 export default App; 

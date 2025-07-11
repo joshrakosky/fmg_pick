@@ -65,22 +65,6 @@ const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, onImport }) => {
             };
           };
 
-          const items = orderRows
-            .filter(row => row['Product Name'])
-            .map(row => {
-              const { color, size, note } = extractColorAndSize(row['Line Note'] || '');
-              const itemId = row['Customer Item #'] || row['Product Name'];
-              return {
-                id: itemId,
-                name: row['Product Name'],
-                sku: row['Customer Item #'] || itemId,
-                quantity: parseInt(row['Quantity'] || '1', 10),
-                color,
-                size,
-                lineNote: note || undefined
-              };
-            });
-
           return {
             orderId,
             customer: {
@@ -89,15 +73,29 @@ const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, onImport }) => {
               contact: firstRow['Customer Contact'] || '',
               address: {
                 street: firstRow['Ship Street 1'] || '',
-                street2: firstRow['Ship Street 2'] || undefined,
+                street2: firstRow['Ship Street 2'] || '',
                 city: firstRow['City'] || '',
                 state: firstRow['State'] || '',
                 postal: firstRow['Postal'] || ''
               }
             },
-            shipAttention: firstRow['Ship Attention'] || undefined,
-            items,
-            status: 'pending' as const,
+            shipAttention: firstRow['Ship Attention'] || '',
+            items: orderRows
+              .filter(row => row['Product Name'])
+              .map(row => {
+                const { color, size, note } = extractColorAndSize(row['Line Note'] || '');
+                const itemId = row['Customer Item #'] || row['Product Name'];
+                return {
+                  id: itemId,
+                  name: row['Product Name'],
+                  sku: row['Customer Item #'] || itemId,
+                  quantity: parseInt(row['Quantity'] || '1', 10),
+                  color,
+                  size,
+                  lineNote: note || undefined
+                };
+              }),
+            status: 'pending',
             createdAt: firstRow['Created Date'] || new Date().toISOString()
           };
         });

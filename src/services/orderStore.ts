@@ -1,16 +1,15 @@
 import { Order } from '../types/orders';
 
-// Broadcast channel for cross-tab communication
+type OrderListener = (orders: Order[]) => void;
+
+// Create a broadcast channel for cross-tab communication
 const orderChannel = new BroadcastChannel('order-updates');
 
-export type OrderStatus = 'pending' | 'in_progress' | 'completed';
-
 class OrderStore {
-  private static instance: OrderStore;
   private orders: Order[] = [];
-  private listeners: ((orders: Order[]) => void)[] = [];
+  private listeners: OrderListener[] = [];
 
-  private constructor() {
+  constructor() {
     // Load initial orders from localStorage
     this.loadOrders();
 
@@ -29,13 +28,6 @@ class OrderStore {
     });
   }
 
-  static getInstance(): OrderStore {
-    if (!OrderStore.instance) {
-      OrderStore.instance = new OrderStore();
-    }
-    return OrderStore.instance;
-  }
-
   private loadOrders() {
     const storedOrders = localStorage.getItem('orders');
     if (storedOrders) {
@@ -46,20 +38,9 @@ class OrderStore {
 
   private saveOrders() {
     localStorage.setItem('orders', JSON.stringify(this.orders));
+    // Notify other tabs/windows
     orderChannel.postMessage({ type: 'orders-updated' });
     this.notifyListeners();
-  }
-
-  private notifyListeners() {
-    this.listeners.forEach(listener => listener(this.orders));
-  }
-
-  subscribe(listener: (orders: Order[]) => void) {
-    this.listeners.push(listener);
-    listener(this.orders);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
   }
 
   getOrders(): Order[] {
@@ -71,20 +52,26 @@ class OrderStore {
     this.saveOrders();
   }
 
-  updateOrderStatus(orderId: string, status: OrderStatus) {
-    const order = this.orders.find(o => o.orderId === orderId);
-    if (order) {
-      order.status = status;
-      if (status === 'completed') {
-        order.completedAt = new Date().toISOString();
-      }
+  updateOrder(updatedOrder: Order) {
+    const index = this.orders.findIndex(order => order.orderId === updatedOrder.orderId);
+    if (index !== -1) {
+      this.orders[index] = updatedOrder;
       this.saveOrders();
     }
   }
 
-  refreshOrders() {
-    this.loadOrders();
+  subscribe(listener: OrderListener) {
+    this.listeners.push(listener);
+    // Immediately notify new listener of current state
+    listener(this.orders);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach(listener => listener(this.orders));
   }
 }
 
-export const orderStore = OrderStore.getInstance(); 
+export const orderStore = new OrderStore(); 
